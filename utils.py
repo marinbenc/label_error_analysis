@@ -4,6 +4,7 @@ from medpy.metric.binary import precision as mp_precision
 from medpy.metric.binary import recall as mp_recall
 from medpy.metric.binary import dc, hd, assd as mp_assd, asd
 import matplotlib.pyplot as plt
+from torchvision.transforms import functional as F
 
 def thresh(img):
   img[img > 0.5] = 1

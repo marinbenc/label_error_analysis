@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.exposure import equalize_adapthist
+from skimage import color
 
 # color.lab2rgb() warns when values are clipped, but that is not a problem here
 warnings.filterwarnings('ignore', message='.*values that have been clipped.*', append=True)
