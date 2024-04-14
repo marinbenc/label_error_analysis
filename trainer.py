@@ -26,7 +26,7 @@ def save_checkpoint(name, log_dir, model, epoch, optimizer, loss):
     }, file_name)
 
 class Trainer:
-  def __init__(self, model, optimizer, loss_fn, train_loader, val_loader, validation_fn, log_dir, checkpoint_name, scheduler=None, device='cuda'):
+  def __init__(self, model, optimizer, loss_fn, train_loader, val_loader, validation_fn, log_dir, checkpoint_name, scheduler=None, device='cuda', label_error_percent=0, ratio=1):
     self.model = model
     self.optimizer = optimizer
     self.loss_fn = loss_fn
@@ -37,6 +37,8 @@ class Trainer:
     self.checkpoint_name = checkpoint_name
     self.scheduler = scheduler
     self.device = device
+    self.label_error_percent = label_error_percent
+    self.ratio = ratio
     self.validation_fn = validation_fn
 
     self.writer = SummaryWriter(log_dir=self.log_dir)
@@ -125,6 +127,8 @@ class Trainer:
 
     self.epochs_since_best += 1
     return False
+  
+  
 
   def get_input(self, batch):
     """Convert data loader output to input of the model"""

@@ -57,7 +57,7 @@ def train(*,
     folds: int = 1,
     overwrite: bool = False,
     workers: int = 8,
-    pretrained_model: Optional[str] = None,):
+    pretrained_model: Optional[str] = None, label_error_percent=0.0, ratio=1.0):
     """
     Train a detection or segmentation model. 
     
@@ -88,6 +88,8 @@ def train(*,
         **dataset_args_valid,
         'subset': 'train',
         'augment': True,
+        'label_error_percent': label_error_percent,
+        'ratio': ratio
     }
 
     dataset_class = data.get_dataset_class(dataset)
