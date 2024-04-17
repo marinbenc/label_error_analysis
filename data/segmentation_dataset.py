@@ -63,11 +63,15 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
                dataset_folder: str, 
                subjects: Optional[List[str]] = None, 
                augment = False, 
-               colorspace: Literal['lab', 'rgb']='rgb'):
+               colorspace: Literal['lab', 'rgb']='rgb',
+               label_error_percent=0.0, 
+               ratio=1.0):
     self.dataset_folder = dataset_folder
     self.colorspace = colorspace
     self.num_classes = 3
     self.augment = augment
+    self.label_error_percent = label_error_percent
+    self.ratio = ratio
 
     assert self.colorspace in ['lab', 'rgb']
 
@@ -112,9 +116,10 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
   
   def get_item_np(self, idx, augmentation=None):
     current_file = self.file_names[idx]
+    input_path = current_file.replace('label/', 'input/').replace('.png', '.jpg')
 
-    input = cv.imread(current_file.replace('label/', 'input/').replace('.png', '.jpg'))
-
+    input = cv.imread(input_path)
+    
     if self.colorspace == 'lab':
       input = cv.cvtColor(input, cv.COLOR_BGR2LAB)
     elif self.colorspace == 'rgb':
@@ -123,10 +128,20 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     input = input.transpose(2, 0, 1)
 
     mask = cv.imread(current_file, cv.IMREAD_GRAYSCALE)
-    mask = mask.astype(np.float32)
-    mask = mask / 255
-    mask[mask > 0.5] = 1
-    mask[mask <= 0.5] = 0
+    
+    # Simulate label error
+    if self.label_error_percent > 0:
+      simplified_label = get_simplified_label(mask, int(self.ratio * get_max_distance(mask, mask)))
+      mask = make_error_label(mask, simplified_label, self.label_error_percent)
+      mask = mask.astype(np.float32) 
+      mask = mask / 255
+      mask[mask > 0.5] = 1
+      mask[mask <= 0.5] = 0
+    else:
+      mask = mask.astype(np.float32)
+      mask = mask / 255
+      mask[mask > 0.5] = 1
+      mask[mask <= 0.5] = 0
     
     if augmentation is not None:
       input = input.transpose(1, 2, 0)

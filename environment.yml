@@ -1,10 +1,12 @@
 name: pt2
 channels:
-  - soumith
+#  - soumith
+  - pytorch
   - defaults
 dependencies:
   - python=3.9
-  - pytorch-cuda=11.8
+#  - pytorch-cuda=11.8
+  - cudatoolkit = 11.8
   - torchaudio
   - torchvision
   - pytorch
@@ -12,4 +14,12 @@ dependencies:
   - ignite
   - numpy=1.20
   - absl-py
-prefix: /home/marinbenc/miniconda3/envs/pt2
+  - opencv
+  - matplotlib = 3.7.2
+#  - scikit-learn = 1.3.0
+#  - monai = 1.2.0
+#  - pandas = 2.2.1
+#  - fire = 0.6.0
+#  - tqdm = 4.65.0
+# prefix: /home/marinbenc/miniconda3/envs/pt2
+prefix: C:\Dev\Anaconda\anaconda3\envs\pt2
