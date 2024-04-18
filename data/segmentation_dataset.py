@@ -14,6 +14,8 @@ import preprocessing_utils as pre
 
 import os
 
+from label_error_sim import make_error_label, get_simplified_label, get_max_distance
+
 def LesionSegDatasetISIC(subset, **kwargs):
   return LesionSegmentationDataset(subset=subset, dataset_folder='isic', **kwargs)
 
