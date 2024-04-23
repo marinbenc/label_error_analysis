@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from data.segmentation_dataset import LesionSegDatasetISIC
-from segmentation_dataset import LesionSegmentationDataset
+from data.segmentation_dataset import LesionSegmentationDataset
 
 
 dataset_to_class = {

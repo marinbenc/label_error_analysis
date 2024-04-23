@@ -53,7 +53,7 @@ https://challenge.isic-archive.com/data/#2018
 Good starting parameters:
 
 ```shell
-train.py --model_type lesion_seg --dataset seg_isic --log_name isic_unet --overwrite --lr 1e-3 --batch-size 32
+python train.py --model_type lesion_seg --dataset seg_isic --log_name isic_unet --overwrite --lr 1e-3 --batch-size 32
 ```
 
 ## Model Training

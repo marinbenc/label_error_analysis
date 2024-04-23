@@ -12,20 +12,42 @@ sys.path.append('../../')
 
 import PIL.Image
 
+import traceback
+
 def get_files(folder):
+  print(f"Accessing folder: {folder}")
   files = os.listdir(folder)
   files.sort()
   files = [f for f in files if not '.txt' in f]
+  # filtered_files = []
+  # for f in files:
+  #     if '.txt' not in f:
+  #         filtered_files.append(f)
+  # files = filtered_files
+
   files = [os.path.join(folder, f) for f in files]
+  # full_paths = []  # Create an empty list to hold the full file paths
+  # for f in files:  # Iterate over each filename in the list 'files'
+  #     full_path = os.path.join(folder, f)  # Combine the folder path and filename into a full path
+  #     full_paths.append(full_path)  # Append the full path to the list 'full_paths'
+  # files = full_paths  # Replace the original 'files' list with the new list of full paths
+
+  #print(f"Found files: {files}")
   return files
 
 def save_files(files, folder):
+  print(f"Saving files to: {folder}")
   os.makedirs(os.path.join(folder, 'input'), exist_ok=True)
   os.makedirs(os.path.join(folder, 'label'), exist_ok=True)
 
   for input_file, gt_file in files:
-    file_name = input_file.split('/')[-1]
+    #print(f"Processing {input_file} and {gt_file}")
+    file_name = input_file.split('\\')[-1] #from '/'
+    #print(f"file_name: {file_name}")
+    #print(file_name)
     input_destination = os.path.join(folder, 'input', file_name)
+    #print(f"input_destination: {input_destination}")
+    #print(input_destination)
     gt_destionation = os.path.join(folder, 'label', file_name.replace('.jpg', '.png'))
     gt_destionation = os.path.join(folder, 'label', file_name.replace('.bmp', '.png'))
     input_destination = input_destination.replace('.png', '.jpg') # always save as jpg
@@ -36,8 +58,12 @@ def save_files(files, folder):
     gt_img = np.array(PIL.Image.fromarray(gt_img).resize((256, 256), PIL.Image.NEAREST)) # OpenCV INTER_NEAREST has a bug
     input_img = cv.resize(input_img, (256, 256), interpolation=cv.INTER_LINEAR)
     
-    cv.imwrite(input_destination, input_img)
-    cv.imwrite(gt_destionation, gt_img)
+    try:
+        cv.imwrite(input_destination, input_img)
+        cv.imwrite(gt_destionation, gt_img)
+    except Exception as e:
+        print(f"Failed to write files: {e}")
+        traceback.print_exc()  
 
 wd = Path(os.path.dirname(os.path.realpath(__file__)))
 
