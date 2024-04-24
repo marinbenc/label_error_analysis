@@ -133,12 +133,26 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     
     # Simulate label error
     if self.label_error_percent > 0:
-      simplified_label = get_simplified_label(mask, int(self.ratio * get_max_distance(mask, mask)))
-      mask = make_error_label(mask, simplified_label, self.label_error_percent)
-      mask = mask.astype(np.float32) 
-      mask = mask / 255
-      mask[mask > 0.5] = 1
-      mask[mask <= 0.5] = 0
+      # TODO: This could be done more efficiently by only calculating the max_dist once per image
+      # in the __init__ method and storing it in an array
+      simplified_label = get_simplified_label(mask, 0)
+      # Calculate a maximum distance between the simplified label and the original label
+      # to make sure the errors are relative to the size of the object
+      max_dist = get_max_distance(mask, simplified_label)
+      if max_dist == 0:
+        # TODO: Handle the duplication of code here and in the other branch
+        mask = mask.astype(np.float32)
+        mask = mask / 255
+        mask[mask > 0.5] = 1
+        mask[mask <= 0.5] = 0
+        print(f"Warning: max_dist is 0 for {current_file}. Skipping error simulation.")
+      else:
+        simplified_label = get_simplified_label(mask, int(self.ratio * max_dist))
+        mask = make_error_label(mask, simplified_label, self.label_error_percent)
+        mask = mask.astype(np.float32) 
+        mask = mask / 255
+        mask[mask > 0.5] = 1
+        mask[mask <= 0.5] = 0
     else:
       mask = mask.astype(np.float32)
       mask = mask / 255
@@ -165,7 +179,12 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     input_tensor = input_tensor.float()
     label_tensor = label_tensor.unsqueeze(0).float()
 
-    #plt.imshow(input.transpose(1, 2, 0))
-    #plt.show()
+    # visualize contour on input
+    # viz = input.transpose(1, 2, 0)
+    # viz = (viz * 255).astype(np.uint8)
+    # contour = cv.findContours(label.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    # cv.drawContours(viz, contour[0], -1, (0, 255, 0), 1)
+    # plt.imshow(viz)
+    # plt.show()
 
     return input_tensor, {'seg': label_tensor}

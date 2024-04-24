@@ -26,8 +26,17 @@ def get_simplified_label(label: np.ndarray, dilation_size: int) -> np.ndarray:
   Returns:
     simplified label image
   '''
+  label_area = cv.countNonZero(label)
+  label_area = label_area / label.shape[0] / label.shape[1]
+
+  blur_size = 256 * label_area
+  blur_size = max(1, blur_size)
+  blur_size = round(blur_size)
+  blur_size = blur_size if blur_size % 2 == 1 else blur_size + 1
+
   # blur
-  label_blur = cv.blur(label, (128, 128))
+  label_blur = cv.blur(label, (blur_size, blur_size), borderType=cv.BORDER_CONSTANT)
+
   # threshold
   thresh = cv.threshold(label_blur, 128, 255, cv.THRESH_BINARY)[1]
 
@@ -38,9 +47,9 @@ def get_simplified_label(label: np.ndarray, dilation_size: int) -> np.ndarray:
   kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (kernel_size, kernel_size))
 
   if dilation_size < 0:
-    return cv.erode(thresh, kernel, iterations=1)
+    thresh = cv.erode(thresh, kernel, iterations=1)
   elif dilation_size > 0:
-    return cv.dilate(thresh, kernel, iterations=1)
+    thresh = cv.dilate(thresh, kernel, iterations=1)
 
   return thresh
 
@@ -56,9 +65,14 @@ def get_max_distance(label1: np.ndarray, label2: np.ndarray) -> int:
   # get contours
   contours1, _ = cv.findContours(label1, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
   contours2, _ = cv.findContours(label2, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-  # get contour points
-  contour1 = contours1[0].squeeze()
-  contour2 = contours2[0].squeeze()
+
+  if len(contours1) == 0 or len(contours2) == 0:
+    return 0
+
+  # get largest contour
+  contour1 = max(contours1, key=lambda x: cv.contourArea(x)).squeeze()
+  contour2 = max(contours2, key=lambda x: cv.contourArea(x)).squeeze()
+
   # get max distance
   max_dist = 0
   for point in contour1:
@@ -81,9 +95,17 @@ def get_contour_polygon_points(label):
   Returns:
     array of points of the polygon
   '''
-  contour = cv.findContours(label, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0][0].squeeze()
-  epsilon = 0.001 * cv.arcLength(contour, True)
+  label = label.copy()
+
+  # morphological closing
+  kernel = np.ones((5, 5), np.uint8)
+  label = cv.morphologyEx(label, cv.MORPH_OPEN, kernel)
+
+  contours = cv.findContours(label, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0]
+  contour = max(contours, key=lambda x: cv.contourArea(x)).squeeze()
+  epsilon = 0.002 * cv.arcLength(contour, True)
   approx = cv.approxPolyDP(contour, epsilon, True)
+
   points = []
   for point in approx:
     points.append(point[0])
@@ -100,6 +122,7 @@ def make_error_label(gt_label, simplified_label, percent_error):
     label with error (binary image)
   '''
   points = get_contour_polygon_points(gt_label)
+  print(len(points))
 
   # label points as groups of 1s or 0s
   point_groups = []
@@ -156,15 +179,15 @@ def make_error_label(gt_label, simplified_label, percent_error):
   return error_label
 
 if __name__ == '__main__':
-  fn_im = 'test_imgs/ISIC_0000264.jpg'
-  fn_anno = 'test_imgs/ISIC_0000264_segmentation.png'
+  fn_im = 'data/isic/train/input/ISIC_0000018.jpg'
+  fn_anno = 'data/isic/train/label/ISIC_0000018.jpg'
 
   label = cv.imread(fn_anno, cv.IMREAD_GRAYSCALE)
   label = cv.resize(label, (512, 512), interpolation=cv.INTER_NEAREST)
   simplified_label = get_simplified_label(label, 0)
   max_dist = get_max_distance(label, simplified_label)
 
-  ratios = np.arange(-1.5, 1.5, 0.4)
+  ratios = np.arange(-3, 1.5, 0.4)
 
   labels_for_ratios = []
   for ratio in ratios:
@@ -179,7 +202,8 @@ if __name__ == '__main__':
   # plot
   fig, ax = plt.subplots(figsize=(7, 7))
   label_rgb = cv.cvtColor(label, cv.COLOR_GRAY2RGB)
-  label_rgb[label == 255] = (255, 0, 0)
+  label_rgb[label > 128] = (255, 0, 0)
+  label_rgb[label <= 128] = (0, 0, 0)
   ax.imshow(label_rgb)
 
   for i, ratio in enumerate(ratios):
