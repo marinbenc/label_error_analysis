@@ -63,3 +63,9 @@ To train a model, run `python train.py -h` to see the available options.
 ## Model Testing
 
 Run `python test.py -h` to see options. Test results will be saved in `predictions/LOG_NAME/metrics_TEST_DATASET_NAME.csv`.
+
+Example
+
+```shell
+python test.py seg_isic LOG_NAME --dataset_folder valid
+```
