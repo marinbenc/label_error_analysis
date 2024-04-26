@@ -122,7 +122,6 @@ def make_error_label(gt_label, simplified_label, percent_error):
     label with error (binary image)
   '''
   points = get_contour_polygon_points(gt_label)
-  print(len(points))
 
   # label points as groups of 1s or 0s
   point_groups = []
@@ -146,6 +145,13 @@ def make_error_label(gt_label, simplified_label, percent_error):
   random_group_idxs = np.random.randint(len(point_groups), size=n_groups_to_pull)
 
   new_points = np.array(points)
+  if len(simplified_contours) == 0:
+    # plt.imshow(gt_label)
+    # plt.show()
+    # plt.imshow(simplified_label)
+    # plt.show()
+    raise ValueError('No contours found in simplified label')
+  
   all_contour_points = simplified_contours[0].squeeze()
 
   # pull chosen groups towards contour
