@@ -138,26 +138,21 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
       simplified_label = get_simplified_label(mask, 0)
       # Calculate a maximum distance between the simplified label and the original label
       # to make sure the errors are relative to the size of the object
+      error = False
       max_dist = get_max_distance(mask, simplified_label)
       if max_dist == 0:
-        # TODO: Handle the duplication of code here and in the other branch
-        mask = mask.astype(np.float32)
-        mask = mask / 255
-        mask[mask > 0.5] = 1
-        mask[mask <= 0.5] = 0
-        print(f"Warning: max_dist is 0 for {current_file}. Skipping error simulation.")
+        print(f'Error for file {current_file}: max_dist is 0')
       else:
         simplified_label = get_simplified_label(mask, int(self.ratio * max_dist))
-        mask = make_error_label(mask, simplified_label, self.label_error_percent)
-        mask = mask.astype(np.float32) 
-        mask = mask / 255
-        mask[mask > 0.5] = 1
-        mask[mask <= 0.5] = 0
-    else:
-      mask = mask.astype(np.float32)
-      mask = mask / 255
-      mask[mask > 0.5] = 1
-      mask[mask <= 0.5] = 0
+        try:
+          mask = make_error_label(mask, simplified_label, self.label_error_percent)
+        except Exception as e:
+          print(f'Error for file {current_file}: {e}')
+    
+    mask = mask.astype(np.float32)
+    mask = mask / 255
+    mask[mask > 0.5] = 1
+    mask[mask <= 0.5] = 0
     
     if augmentation is not None:
       input = input.transpose(1, 2, 0)
