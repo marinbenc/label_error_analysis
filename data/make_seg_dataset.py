@@ -40,27 +40,31 @@ def save_files(files, folder):
   os.makedirs(os.path.join(folder, 'input'), exist_ok=True)
   os.makedirs(os.path.join(folder, 'label'), exist_ok=True)
 
-  for input_file, gt_file in files:
+  for gt_file in files:
     #print(f"Processing {input_file} and {gt_file}")
-    file_name = input_file.split('\\')[-1] #from '/'
-    #print(f"file_name: {file_name}")
-    #print(file_name)
+    file_name = Path(gt_file).name.replace('_segmentation', '')
+
     input_destination = os.path.join(folder, 'input', file_name)
-    #print(f"input_destination: {input_destination}")
-    #print(input_destination)
-    gt_destionation = os.path.join(folder, 'label', file_name.replace('.jpg', '.png'))
-    gt_destionation = os.path.join(folder, 'label', file_name.replace('.bmp', '.png'))
     input_destination = input_destination.replace('.png', '.jpg') # always save as jpg
     input_destination = input_destination.replace('.bmp', '.jpg')
 
+    gt_destination = os.path.join(folder, 'label', file_name.replace('.jpg', '.png'))
+    gt_destination = os.path.join(folder, 'label', file_name.replace('.bmp', '.png'))
+
+    input_file = (gt_file
+      .replace('GroundTruth', 'Input')
+      .replace('_segmentation', '')
+      .replace('Task1', 'Task1-2')
+      .replace('.png', '.jpg'))
     input_img = cv.imread(input_file)
+    input_img = cv.resize(input_img, (256, 256), interpolation=cv.INTER_LINEAR)
+
     gt_img = cv.imread(gt_file, cv.IMREAD_GRAYSCALE)
     gt_img = np.array(PIL.Image.fromarray(gt_img).resize((256, 256), PIL.Image.NEAREST)) # OpenCV INTER_NEAREST has a bug
-    input_img = cv.resize(input_img, (256, 256), interpolation=cv.INTER_LINEAR)
     
     try:
         cv.imwrite(input_destination, input_img)
-        cv.imwrite(gt_destionation, gt_img)
+        cv.imwrite(gt_destination, gt_img)
     except Exception as e:
         print(f"Failed to write files: {e}")
         traceback.print_exc()  
@@ -72,54 +76,29 @@ for group in dataset_groups:
   os.makedirs(wd/group, exist_ok=True)
 
   if group == 'isic':
-    VALID_INPUT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1-2_Validation_Input'
-    TRAIN_INPUT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1-2_Training_Input'
-    TEST_INPUT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1-2_Test_Input'
     TEST_GT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1_Test_GroundTruth'
     VALID_GT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1_Validation_GroundTruth'
     TRAIN_GT_FOLDER = 'downloaded_data/isic/ISIC2018_Task1_Training_GroundTruth'
-
-    valid_input = get_files(wd/VALID_INPUT_FOLDER)
-    train_input = get_files(wd/TRAIN_INPUT_FOLDER)
-    test_input = get_files(wd/TEST_INPUT_FOLDER)
 
     valid_gt = get_files(wd/VALID_GT_FOLDER)
     train_gt = get_files(wd/TRAIN_GT_FOLDER)
     test_gt = get_files(wd/TEST_GT_FOLDER)
 
-    inputs = valid_input + train_input + test_input
     gts = valid_gt + train_gt + test_gt
-  
-  elif group in ['dermis', 'dermquest']:
-    subset = group.split('_')[-1]
-    subset_folder = subset
-    if subset_folder == 'dermis':
-      subset_folder = 'dermIS'
     
-    gts = glob(f'{wd}/downloaded_data/waterloo/**/*_contour.png', recursive=True)
-    gts = [gt for gt in gts if subset_folder in gt or subset in gt]
-
-    inputs = [f.replace('_contour.png', '_orig.jpg') for f in gts]
-
-  elif group == 'ph2':
-    inputs = glob(f'{wd}/downloaded_data/ph2/**/*_Dermoscopic_Image/*.bmp', recursive=True)
-    gts = [f.replace('_Dermoscopic_Image', '_lesion').replace('.bmp', '_lesion.bmp') for f in inputs]
-
-  elif group == 'dermofit':
-    gts = glob(f'{wd}/downloaded_data/dermofit/**/*mask.png', recursive=True)
-    inputs = [f.replace('mask', '') for f in gts]
-  
   # split same as in Double U-Net paper: https://arxiv.org/pdf/2006.04868v2.pdf
   train_valid_test_split = (0.8, 0.1, 0.1)
 
-  test_count = int(train_valid_test_split[2] * len(inputs))
+  test_count = int(train_valid_test_split[2] * len(gts))
   valid_count = test_count
-  train_count = len(inputs) - test_count * 2
+  train_count = len(gts) - test_count * 2
 
   print(group, train_count, valid_count, test_count)
-  assert(test_count + valid_count + train_count == len(inputs))
+  assert(test_count + valid_count + train_count == len(gts))
 
-  all_files = np.array(list(zip(inputs, gts)))
+  all_files = np.array(gts)
+  # sort files
+  all_files = np.sort(all_files)
   np.random.seed(2022)
   np.random.shuffle(all_files)
 
