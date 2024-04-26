@@ -122,7 +122,7 @@ def make_error_label(gt_label, simplified_label, percent_error):
     label with error (binary image)
   '''
   points = get_contour_polygon_points(gt_label)
-  print(len(points))
+  #print(len(points))
 
   # label points as groups of 1s or 0s
   point_groups = []
