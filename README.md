@@ -54,6 +54,8 @@ Good starting parameters:
 
 ```shell
 python train.py --model_type lesion_seg --dataset seg_isic --log_name isic_unet --overwrite --lr 1e-4 --batch-size 32
+
+python train.py --dataset seg_isic --log_name isic_unet_1e-4_8 --overwrite --lr 1e-4 --batch-size 8 --workers 0
 ```
 
 ## Model Training
