@@ -103,86 +103,133 @@ def get_contour_polygon_points(label):
 
   contours = cv.findContours(label, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0]
   contour = max(contours, key=lambda x: cv.contourArea(x)).squeeze()
-  epsilon = 0.002 * cv.arcLength(contour, True)
+  epsilon = 0.005 * cv.arcLength(contour, True)
   approx = cv.approxPolyDP(contour, epsilon, True)
 
   points = []
   for point in approx:
     points.append(point[0])
+
   return np.array(points)
 
-def make_error_label(gt_label, simplified_label, percent_error):
+def make_error_label(gt_label, percent_error, bias):
   '''
   Makes a label with error by pulling some points of the label towards the simplified label.
   Args:
     gt_label: ground truth label image (binary image)
-    simplified_label: simplified label image (binary image)
     percent_error: percentage of points to pull towards the simplified label
+    bias: no bias (0), bias towards false positives (1), bias towards false negatives (-1)
   Returns:
     label with error (binary image)
   '''
   points = get_contour_polygon_points(gt_label)
 
-  # label points as groups of 1s or 0s
-  point_groups = []
-  group = []
+  # draw points
+  viz_img = np.zeros((gt_label.shape[0], gt_label.shape[1], 3), np.uint8)
+  viz_img[gt_label > 128] = (255, 0, 0)
+  # for point in points:
+  #   gt_label = cv.circle(viz_img, tuple(point), 3, (0, 255, 0), -1)
 
-  simplified_contours, _ = cv.findContours(simplified_label, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-  point_above_contour = [is_inside_contour(p, simplified_contours) for p in points]
+  # draw convex hull
+  hull = cv.convexHull(points, returnPoints=False)
+  #hull_points = points[hull.squeeze()]
+  #viz_img = cv.drawContours(viz_img, [hull_points], -1, (0, 0, 255), 2)
 
-  for i, point in enumerate(points):
-    if i == 0:
-      group.append(point)
-    else:
-      if point_above_contour[i] == point_above_contour[i - 1]:
-        group.append(point)
+  hull_points = []
+  for i in hull.squeeze():
+    hull_points.append(points[i])
+  hull_points = np.array(hull_points)
+
+  # find defects
+  defects = cv.convexityDefects(points, hull)
+  if defects is not None:
+    defect_points = points[defects[:, 0, 2]]
+  else:
+    defect_points = np.empty((0, 2))
+
+  key_points = np.concatenate((hull_points, defect_points))
+  is_defect = np.zeros(len(key_points)).astype(bool)
+  is_defect[len(hull_points):] = 1
+
+  # sort key_points based on points
+  points = np.array(points)
+  sorting = np.zeros(len(key_points), np.uint8)
+  for idx in range(len(key_points)):
+    # find closest point in points
+    idx_in_points = np.argmin(np.linalg.norm(points - key_points[idx], axis=1))
+    sorting[idx] = idx_in_points
+
+  sorting = np.argsort(sorting)
+  key_points = key_points[sorting]
+  is_defect = is_defect[sorting]
+
+  # shift so that key_points[0] is a defect point
+  if not is_defect[0]:
+    key_points = np.roll(key_points, -1, axis=0)
+    is_defect = np.roll(is_defect, -1, axis=0)
+
+  # make two arrays of groups of point indices
+  # one for hull points and one for defect points
+
+  hull_groups = []
+  defect_groups = []
+
+  for i, point in enumerate(key_points):
+    # check previous point
+    if i > 0:
+      # if point is in the same group as the previous point
+      # otherwise, start a new group
+      if is_defect[i] == is_defect[i - 1]:
+        if is_defect[i]:
+          defect_groups[-1].append(i)
+        else:
+          if len(hull_groups[-1]) >= 3:
+            hull_groups.append([i]) # limit the maximum number of points in a hull group to 3
+          else:
+            hull_groups[-1].append(i)
       else:
-        point_groups.append(group)
-        group = [point]
+        if is_defect[i]:
+          defect_groups.append([i])
+        else:
+          hull_groups.append([i])
+    else:
+      if is_defect[i]:
+        defect_groups.append([i])
+      else:
+        hull_groups.append([i])
 
-  # choose random groups to pull towards contour
-  n_groups_to_pull = round(percent_error * len(point_groups))
-  random_group_idxs = np.random.randint(len(point_groups), size=n_groups_to_pull)
+  n_groups_to_remove = round(len(defect_groups) * percent_error)
+  n_groups_to_remove = min(n_groups_to_remove, len(defect_groups))
+  n_groups_to_remove = max(n_groups_to_remove, 0)
 
-  new_points = np.array(points)
-  if len(simplified_contours) == 0:
-    # plt.imshow(gt_label)
-    # plt.show()
-    # plt.imshow(simplified_label)
-    # plt.show()
-    raise ValueError('No contours found in simplified label')
-  
-  all_contour_points = simplified_contours[0].squeeze()
+  hull_group_idxs_to_remove = []
+  defect_group_idxs_to_remove = []
 
-  # pull chosen groups towards contour
-  for i, point in enumerate(points):
-    # check if point is in random group
-    in_group = False
-    for group_idx in random_group_idxs:
-      if np.sum(point == point_groups[group_idx]) > 0:
-        in_group = True
-        break
-    
-    if not in_group:
-      continue
+  if bias == 0:
+    hull_group_idxs_to_remove = np.random.choice(len(hull_groups), n_groups_to_remove // 2, replace=False)
+    defect_group_idxs_to_remove = np.random.choice(len(defect_groups), n_groups_to_remove // 2, replace=False)
+  elif bias == 1:
+    hull_group_idxs_to_remove = np.random.choice(len(hull_groups), n_groups_to_remove, replace=False)
+  elif bias == -1:
+    defect_group_idxs_to_remove = np.random.choice(len(defect_groups), n_groups_to_remove, replace=False)
+  else:
+    raise ValueError('bias must be -1, 0, or 1')
 
-    # get closest point on error contour
-    closest_point = None
-    min_dist = float('inf')
-    for contour_point in all_contour_points:
-      dist = np.linalg.norm(contour_point - point)
-      if dist < min_dist:
-        min_dist = dist
-        closest_point = contour_point
+  hull_points_to_remove = [p for group in hull_group_idxs_to_remove for p in hull_groups[group]]
+  defect_points_to_remove = [p for group in defect_group_idxs_to_remove for p in defect_groups[group]]
 
-    new_points[i] = closest_point
-  
-  # draw contour from new_points
-  contour = np.array([new_points], dtype=np.int32)
-  error_label = np.zeros(gt_label.shape, np.uint8)
-  error_label = cv.drawContours(error_label, contour, -1, 255, 2)
+  # remove groups
+  new_key_points = []
+  for i, point in enumerate(key_points):
+    if i not in hull_points_to_remove and i not in defect_points_to_remove:
+      new_key_points.append(point)
 
-  return error_label
+  new_key_points = np.array(new_key_points).astype(np.int32)
+
+  new_mask = np.zeros_like(gt_label)
+  new_mask = cv.fillPoly(new_mask, [new_key_points], 255)
+
+  return new_mask
 
 if __name__ == '__main__':
   fn_im = 'data/isic/train/input/ISIC_0000018.jpg'

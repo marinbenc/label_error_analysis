@@ -53,6 +53,10 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
       Whether to augment the dataset. If colorspace is 'dist', the image will be tinted with a randomly sampled color.
     colorspace ('lab', 'rgb'): 
       The colorspace to use.
+    label_error_percent (float):
+      The percentage of label error to simulate.
+    bias (int):
+      The bias to use when simulating label error. If 0, the error is random. If 1, more false positives are generated. If -1, more false negatives are generated.
 
     Attributes:
       subjects (set[str]): Names of the subjects in the dataset.
@@ -67,15 +71,17 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
                augment = False, 
                colorspace: Literal['lab', 'rgb']='rgb',
                label_error_percent=0.0, 
-               ratio=1.0):
+               bias=0):
     self.dataset_folder = dataset_folder
     self.colorspace = colorspace
     self.num_classes = 3
     self.augment = augment
     self.label_error_percent = label_error_percent
-    self.ratio = ratio
+    self.bias = bias
 
     assert self.colorspace in ['lab', 'rgb']
+    assert self.label_error_percent >= 0 and self.label_error_percent <= 1
+    assert self.bias in [-1, 0, 1]
 
     if subjects is not None:
       self.subset = 'all'
@@ -91,6 +97,13 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     
     self.subject_id_for_idx = [self._get_subject_from_file_name(f) for f in self.file_names]
     self.subjects = subjects if subjects is not None else set(self.subject_id_for_idx)
+
+    if self.label_error_percent > 0:
+      self.max_distances = np.zeros(len(self.file_names))
+      for idx in range(len(self.file_names)):
+        current_file = self.file_names[idx]
+        mask = cv.imread(current_file, cv.IMREAD_GRAYSCALE)
+        simplified_label = get_simplified_label(mask, 0)
     
   def _get_files(self, directories):
     file_names = []
@@ -133,21 +146,10 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     
     # Simulate label error
     if self.label_error_percent > 0:
-      # TODO: This could be done more efficiently by only calculating the max_dist once per image
-      # in the __init__ method and storing it in an array
-      simplified_label = get_simplified_label(mask, 0)
-      # Calculate a maximum distance between the simplified label and the original label
-      # to make sure the errors are relative to the size of the object
-      error = False
-      max_dist = get_max_distance(mask, simplified_label)
-      if max_dist == 0:
-        print(f'Error for file {current_file}: max_dist is 0')
-      else:
-        simplified_label = get_simplified_label(mask, int(self.ratio * max_dist))
-        try:
-          mask = make_error_label(mask, simplified_label, self.label_error_percent)
-        except Exception as e:
-          print(f'Error for file {current_file}: {e}')
+      #try:
+      mask = make_error_label(mask, self.label_error_percent, self.bias)
+      #except Exception as e:
+      #  print(f'Error for file {current_file}: {e}')
     
     mask = mask.astype(np.float32)
     mask = mask / 255
@@ -177,8 +179,11 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     # visualize contour on input
     # viz = input.transpose(1, 2, 0)
     # viz = (viz * 255).astype(np.uint8)
+    # gt_mask = cv.imread(self.file_names[idx], cv.IMREAD_GRAYSCALE)
+    # gt_contour = cv.findContours(gt_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # contour = cv.findContours(label.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    # cv.drawContours(viz, contour[0], -1, (0, 255, 0), 1)
+    # cv.drawContours(viz, gt_contour[0], -1, (0, 255, 0), 1)
+    # cv.drawContours(viz, contour[0], -1, (0, 0, 255), 1)
     # plt.imshow(viz)
     # plt.show()
 
