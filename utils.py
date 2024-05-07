@@ -83,6 +83,22 @@ def recall(y_pred, y_true):
   r = mp_recall(y_pred, y_true)
   return r
 
+def fpr(y_pred, y_true):
+  '''False positive rate'''
+  y_pred = thresh(y_pred).astype(np.int32)
+  y_true = thresh(y_true).astype(np.int32)
+
+  fp = np.logical_and(y_pred, np.logical_not(y_true)).sum()
+  return fp / y_true.sum()
+
+def fnr(y_pred, y_true):
+  '''False negative rate'''
+  y_pred = thresh(y_pred).astype(np.int32)
+  y_true = thresh(y_true).astype(np.int32)
+
+  fn = np.logical_and(np.logical_not(y_pred), y_true).sum()
+  return fn / y_true.sum()
+
 def show_torch(imgs, titles=None, show=True, save=False, save_path=None, figsize=(6.4, 4.8), **kwargs):
     if not isinstance(imgs, list):
         imgs = [imgs]
