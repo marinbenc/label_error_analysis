@@ -56,7 +56,7 @@ def train(*,
     device: str = 'cuda',
     folds: int = 1,
     overwrite: bool = False,
-    workers: int = 8,
+    workers: int = 0,
     pretrained_model: Optional[str] = None, label_error_percent=0.0, ratio=1.0):
     """
     Train a detection or segmentation model. 

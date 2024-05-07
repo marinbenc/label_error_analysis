@@ -1,8 +1,12 @@
 import subprocess
 import sys
+import os
 
 def run_validating():
-    print("Using Python executable:", sys.executable)
+    
+    venv_python = "C:\\Git\\label_error_analysis\\env\\Scripts\\python.exe"
+    #print("Using Python executable:", sys.executable)
+    print("Using Python executable:", venv_python)
 
     # Define the configurations for your models
     models = [
@@ -38,9 +42,12 @@ def run_validating():
     for model in models:
 
         command = [sys.executable, "test.py", "seg_isic", model, "--dataset_folder", dataset_folder]
+
+        env = os.environ.copy()
         print(f"Running: {' '.join(command)}")
-        result = subprocess.run(command, text=True, capture_output=True, encoding='utf-8')
-        
+        result = subprocess.run(command, text=True, capture_output=True, encoding='utf-8', shell=False, env=env)
+        #result = subprocess.run(command, text=True, capture_output=True, encoding='utf-8')
+                
         if result.returncode == 0:
             print("Command executed successfully")
             print(result.stdout)

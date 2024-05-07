@@ -104,7 +104,7 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     return file_names
 
   def _get_subject_from_file_name(self, file_name):
-    return file_name.split('/')[-1].split('.')[0]
+    return file_name.split('\\')[-1].split('.')[0] #changed from '/'
   
   def get_train_augmentation(self):
     return A.Compose([
@@ -118,7 +118,7 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
   
   def get_item_np(self, idx, augmentation=None):
     current_file = self.file_names[idx]
-    input_path = current_file.replace('label/', 'input/').replace('.png', '.jpg')
+    input_path = current_file.replace('label\\', 'input\\').replace('.png', '.jpg') #changed from '/'
 
     input = cv.imread(input_path)
     
