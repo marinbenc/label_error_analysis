@@ -49,7 +49,6 @@ def save_error_labels(dataset, ys_error, output_folder):
     for i, error_mask in enumerate(ys_error):
         subject_id = dataset.subject_id_for_idx[i]
         output_path = os.path.join(output_folder, f"{subject_id}.png")
-        #cv.imwrite(output_path, error_mask * 255)  # Convert mask to 0-255 scale for saving
         cv.imwrite(output_path, error_mask)
 
 # def main():
@@ -73,14 +72,14 @@ def save_error_labels(dataset, ys_error, output_folder):
 
 def batch_process():
     biases = [-1, 0, 1]
-    label_error_percents = np.arange(0.0, 1.1, 0.1)
+    label_error_percents = np.arange(0.1, 1.1, 0.1)
     dataset = LesionSegmentationDataset(subset='all', dataset_folder='isic', augment=False, colorspace='rgb')
 
     for bias in biases:
         for label_error_percent in label_error_percents:
-            print(f"Processing bias {bias}, error percent {label_error_percent}")
+            print(f"Processing bias {bias}, error percent {label_error_percent:.2f}")
             ys_error = get_error_labels(dataset, label_error_percent, bias)
-            output_folder = f"data/isic/labels_{label_error_percent}_{bias}"
+            output_folder = f"data/isic/labels_{int(label_error_percent * 100)}_{bias}"
             Path(output_folder).mkdir(parents=True, exist_ok=True)
             save_error_labels(dataset, ys_error, output_folder)
 

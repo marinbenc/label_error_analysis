@@ -117,7 +117,7 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     return file_names
 
   def _get_subject_from_file_name(self, file_name):
-    return file_name.split('\\')[-1].split('.')[0] #changed from '/'
+    return Path(file_name).stem.split('.')[0]
   
   def get_train_augmentation(self):
     return A.Compose([
@@ -131,8 +131,14 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
   
   def get_item_np(self, idx, augmentation=None):
     current_file = self.file_names[idx]
-    input_path = current_file.replace('label\\', 'input\\').replace('.png', '.jpg') #changed from '/'
+    # .../label/ISIC_0000000.png => .../input/ISIC_0000000.jpg
+    folder_dir = Path(current_file).parent.parent
+    input_path = p.join(folder_dir, 'input', Path(current_file).name.replace('.png', '.jpg'))
 
+    if self.label_error_percent > 0:
+      dataset_dir = p.join(p.dirname(__file__), self.dataset_folder)
+      current_file = p.join(dataset_dir, f'labels_{int(self.label_error_percent * 100)}_{self.bias}', Path(current_file).name)
+    
     input = cv.imread(input_path)
     
     if self.colorspace == 'lab':
@@ -143,13 +149,6 @@ class LesionSegmentationDataset(torch.utils.data.Dataset):
     input = input.transpose(2, 0, 1)
 
     mask = cv.imread(current_file, cv.IMREAD_GRAYSCALE)
-    
-    # Simulate label error
-    if self.label_error_percent > 0:
-      #try:
-      mask = make_error_label(mask, self.label_error_percent, self.bias)
-      #except Exception as e:
-      #  print(f'Error for file {current_file}: {e}')
     
     mask = mask.astype(np.float32)
     mask = mask / 255

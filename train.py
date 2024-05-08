@@ -57,7 +57,7 @@ def train(*,
     folds: int = 1,
     overwrite: bool = False,
     workers: int = 0,
-    pretrained_model: Optional[str] = None, label_error_percent=0.0, ratio=1.0):
+    pretrained_model: Optional[str] = None, label_error_percent=0.0, bias=0):
     """
     Train a detection or segmentation model. 
     
@@ -82,6 +82,11 @@ def train(*,
         'subset': 'valid',
         'augment': True,
         'colorspace': 'rgb',
+        # The validation dataset also includes label errors, 
+        # since in a real-world scenario, the model would be 
+        # trained on data with label errors.
+        'label_error_percent': label_error_percent,
+        'bias': bias
     }
 
     dataset_args_train = {
@@ -89,7 +94,7 @@ def train(*,
         'subset': 'train',
         'augment': True,
         'label_error_percent': label_error_percent,
-        'ratio': ratio
+        'bias': bias
     }
 
     dataset_class = data.get_dataset_class(dataset)
