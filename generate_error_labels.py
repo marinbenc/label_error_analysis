@@ -72,7 +72,7 @@ def save_error_labels(dataset, ys_error, output_folder):
 
 def batch_process():
     biases = [-1, 0, 1]
-    label_error_percents = np.arange(0.1, 1.1, 0.1)
+    label_error_percents = np.arange(0.0, 1.1, 0.25)
     dataset = LesionSegmentationDataset(subset='all', dataset_folder='isic', augment=False, colorspace='rgb')
 
     for bias in biases:
