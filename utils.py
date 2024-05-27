@@ -88,6 +88,12 @@ def fpr(y_pred, y_true):
   y_pred = thresh(y_pred).astype(np.int32)
   y_true = thresh(y_true).astype(np.int32)
 
+  if y_true.sum() <= 5:
+    # when the example is nearly empty, avoid division by 0
+    # if the prediction is also empty, fpr is 0
+    # otherwise it's 1
+    return 0 if y_pred.sum() <= 5 else 1
+
   fp = np.logical_and(y_pred, np.logical_not(y_true)).sum()
   return fp / y_true.sum()
 
@@ -95,6 +101,12 @@ def fnr(y_pred, y_true):
   '''False negative rate'''
   y_pred = thresh(y_pred).astype(np.int32)
   y_true = thresh(y_true).astype(np.int32)
+
+  if y_true.sum() <= 5:
+    # when the example is nearly empty, avoid division by 0
+    # if the prediction is also empty, fnr is 0
+    # otherwise it's 1
+    return 0 if y_pred.sum() <= 5 else 1
 
   fn = np.logical_and(np.logical_not(y_pred), y_true).sum()
   return fn / y_true.sum()

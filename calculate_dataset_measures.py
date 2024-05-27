@@ -52,7 +52,6 @@ def calculate_metrics(ys_pred, ys, metrics, subjects=None):
   return df
 
 def calculate(dataset, label_error_percent, bias):
-    datasets = []
     dataset_args = {
       'subset': 'train',
       'augment': False,
@@ -87,10 +86,9 @@ def calculate(dataset, label_error_percent, bias):
         ys_error.append(y)
 
     df = calculate_metrics(ys, ys_error, metrics)
-    print(df.info())
+    df['subject'] = no_error_dataset.subject_id_for_idx
     print(df.describe())
-
-    plt.show()
+    return df
 
 if __name__ == '__main__':
     fire.Fire(calculate)

@@ -187,13 +187,6 @@ def test(dataset, log_name, dataset_folder=None, save_predictions=False, viz=Fal
       ys += list(ys_fold)
       ys_pred += list(ys_pred_fold)
       subject_ids += list(subject_ids_fold)
-        
-    metrics = {
-        'dsc': utils.dsc,
-        'hd': utils.housdorff_distance,
-        'prec': utils.precision,
-        'rec': utils.recall,
-    }
 
     metrics = {
         'dsc': utils.dsc,
@@ -201,6 +194,8 @@ def test(dataset, log_name, dataset_folder=None, save_predictions=False, viz=Fal
         'assd': utils.assd,
         'prec': utils.precision,
         'rec': utils.recall,
+        'fpr': utils.fpr,
+        'fnr': utils.fnr,
     }
 
     df = calculate_metrics(ys, ys_pred, metrics, subjects=subject_ids)
