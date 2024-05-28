@@ -1,16 +1,6 @@
-## Title
+## Impact of Skin Lesion Segmentation Labeling Errors on Convolutional Neural Networks
 
-This is the code repository for the paper
-
-Todo
-
-## Tasks
-
-- [ ] Add label error percent and ratio as parameters to the dataset class.
-- [ ] Implement label error simulation in `get_item_np()` in the dataset class. Use the functions in `label_error_sim.py` for that.
-- [ ] Add command line argument for error percent and ratio to train.py.
-- [ ] Train on various combination of ratios and error rates. For start, use `--folds 1` just to validate the results.
-- [ ] Make a script to automate the training and testing process.
+**TODO** Add link to paper.
 
 ## Requirements
 
