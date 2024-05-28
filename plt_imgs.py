@@ -65,6 +65,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+from utils import fpr, fnr
+
 #How to run the scrypt: python your_script_name.py image.jpg
 
 # Check if image name is provided as a command line argument
@@ -75,8 +77,8 @@ if len(sys.argv) != 2:
 image_name = sys.argv[1]
 
 # Set paths to the directories
-image_dir = 'data/isic/all_images'
-ground_truth_dir = 'data/isic/all_labels_ground_truth'
+image_dir = 'data/isic/test/input'
+ground_truth_dir = 'data/isic/test/label'
 base_distorted_dir = 'data/isic'
 save_directory = 'plotted_imgs'
 
@@ -109,14 +111,20 @@ for row_idx, percent in enumerate(label_error_percent):
         distorted_label_path = os.path.join(base_distorted_dir, f'labels_{percent}_{bias}', image_name.replace('.jpg', '.png'))
         distorted_label = cv2.imread(distorted_label_path, cv2.IMREAD_GRAYSCALE)
 
+        print(f'fpr: {fpr(distorted_label, ground_truth)}')
+        print(f'fnr: {fnr(distorted_label, ground_truth)}')
+
         # Find contours for ground truth and distorted labels
         contours_gt, _ = cv2.findContours(ground_truth, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours_distorted, _ = cv2.findContours(distorted_label, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         ax = axs[row_idx, col_idx]
-        ax.imshow(image)
+        ax.imshow(ground_truth * 0.5 + 0.5 * distorted_label, cmap='gray')
         ax.axis('off')
         ax.set_title(f'Error {percent}% Bias {bias}')
+
+        print(f'row_idx: {row_idx}, col_idx: {col_idx}')
+        print(f'bias: {bias}, percent: {percent}')
 
         # Draw contours with matplotlib
         for contour in contours_gt:
@@ -130,5 +138,6 @@ for row_idx, percent in enumerate(label_error_percent):
 
 plt.tight_layout()
 save_path = os.path.join(save_directory, f'{os.path.splitext(image_name)[0]}_detailed_plots.png')
-plt.savefig(save_path, dpi=300)  # Save the figure with all plots
-plt.close(fig)  # Close the figure to free up memory
+plt.show()
+#plt.savefig(save_path, dpi=300)  # Save the figure with all plots
+#plt.close(fig)  # Close the figure to free up memory

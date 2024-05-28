@@ -230,39 +230,4 @@ def make_error_label(gt_label, percent_error, bias):
   new_mask = cv.fillPoly(new_mask, [new_key_points], 255)
 
   return new_mask
-
-if __name__ == '__main__':
-  fn_im = 'data/isic/train/input/ISIC_0000018.jpg'
-  fn_anno = 'data/isic/train/label/ISIC_0000018.jpg'
-
-  label = cv.imread(fn_anno, cv.IMREAD_GRAYSCALE)
-  label = cv.resize(label, (512, 512), interpolation=cv.INTER_NEAREST)
-  simplified_label = get_simplified_label(label, 0)
-  max_dist = get_max_distance(label, simplified_label)
-
-  ratios = np.arange(-3, 1.5, 0.4)
-
-  labels_for_ratios = []
-  for ratio in ratios:
-    dilation = round(ratio * max_dist * 2)
-    current_label = get_simplified_label(label, dilation)
-    error_label = make_error_label(label, current_label, 0.5)
-    labels_for_ratios.append(error_label)
-
-  # ratio colors for plotting
-  colors = plt.cm.Blues(np.linspace(0, 1, len(ratios)))
-
-  # plot
-  fig, ax = plt.subplots(figsize=(7, 7))
-  label_rgb = cv.cvtColor(label, cv.COLOR_GRAY2RGB)
-  label_rgb[label > 128] = (255, 0, 0)
-  label_rgb[label <= 128] = (0, 0, 0)
-  ax.imshow(label_rgb)
-
-  for i, ratio in enumerate(ratios):
-    contours, _ = cv.findContours(labels_for_ratios[i], cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    contour = contours[0].squeeze()
-    ax.plot(contour[:, 0], contour[:, 1], color=colors[i], linewidth=1.5, label=round(ratio, 2))
-  ax.legend()
-  ax.axis('off')
-  plt.show()
+  

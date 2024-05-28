@@ -198,7 +198,7 @@ def test(dataset, log_name, dataset_folder=None, save_predictions=False, viz=Fal
         'fnr': utils.fnr,
     }
 
-    df = calculate_metrics(ys, ys_pred, metrics, subjects=subject_ids)
+    df = calculate_metrics(ys_pred, ys, metrics, subjects=subject_ids)
 
     df.to_csv(p.join(f'predictions', log_name, f'metrics_{dataset}.csv'))
     print(df.describe())

@@ -18,6 +18,9 @@ def dsc(y_pred, y_true):
   if not np.any(y_true):
     return 0 if np.any(y_pred) else 1
 
+  if not np.any(y_pred):
+    return 0 if np.any(y_true) else 1
+
   score = dc(y_pred, y_true)
   return score
 
@@ -28,6 +31,9 @@ def housdorff_distance(y_pred, y_true):
   if not np.any(y_true):
     return 0 if np.any(y_pred) else 1
 
+  if not np.any(y_pred):
+    return 0 if np.any(y_true) else 1
+
   score = hd(y_pred, y_true)
   return score
 
@@ -37,6 +43,9 @@ def assd(y_pred, y_true):
 
   if not np.any(y_true):
     return 0 if np.any(y_pred) else 1
+
+  if not np.any(y_pred):
+    return 0 if np.any(y_true) else 1
 
   assd = np.mean( (asd(y_pred, y_true, None, 1), asd(y_true, y_pred, None, 1)) )
   return assd

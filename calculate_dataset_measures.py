@@ -85,7 +85,7 @@ def calculate(dataset, label_error_percent, bias):
         y = utils.thresh(y)
         ys_error.append(y)
 
-    df = calculate_metrics(ys, ys_error, metrics)
+    df = calculate_metrics(ys_error, ys, metrics)
     df['subject'] = no_error_dataset.subject_id_for_idx
     print(df.describe())
     return df
